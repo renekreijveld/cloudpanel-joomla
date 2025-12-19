@@ -1,0 +1,89 @@
+######################################################################
+## Block access to common Joomla sensitive files in NginX
+## Created by Rene Kreijveld
+## Version 1.0
+######################################################################
+location = /configuration.php {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /configuration.php-dist {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /CONTRIBUTING.md {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /htaccess.txt {
+    log_not_found off;
+    deny all;
+    return 404;
+}
+location = /joomla.xml {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /LICENSE.txt {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location /phpunit.xml {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /README.txt {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /web.config {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /language/en-GB/install.xml {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /language/en-GB/langmetadata.xml {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /language/nl-NL/install.xml {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+location = /language/nl-NL/langmetadata.xml {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+
+######################################################################
+## Block access to common Joomla sensitive folders
+######################################################################
+location ^~ /logs/ {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+
+location ^~ /administrator/logs/ {
+  log_not_found off;
+  deny all;
+  return 404;
+}
+
+location ~ /\.(ht|svn|git) {
+  deny all;
+}
