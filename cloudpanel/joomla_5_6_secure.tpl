@@ -19,7 +19,26 @@ server {
     rewrite ^ https://$host$request_uri permanent;
   }
 
-  include /etc/nginx/common_joomla_exploits;
+  ######################################################################
+  ## Protect against common exploits in query strings in NginX
+  ######################################################################
+  set $common_exploit 0;
+  if ($query_string ~ "proc/self/environ") {set $common_exploit 1;}
+  if ($query_string ~ "mosConfig_[a-zA-Z_]{1,21}(=|\%3D)") {set $common_exploit 1;}
+  if ($query_string ~ "base64_(en|de)code\(.*\)") {set $common_exploit 1;}
+  if ($query_string ~ "(<|%3C).*script.*(>|%3E)") {set $common_exploit 1;}
+  if ($query_string ~ "GLOBALS(=|\[|\%[0-9A-Z]{0,2})") {set $common_exploit 1;}
+  if ($query_string ~ "_REQUEST(=|\[|\%[0-9A-Z]{0,2})") {set $common_exploit 1;}
+  if ($common_exploit = 1) {return 403;}
+
+  ######################################################################
+  ## Protect against common file injection attacks
+  ######################################################################
+  set $file_injection 0;
+  if ($query_string ~ "[a-zA-Z0-9_]=http://") {set $file_injection 1;}
+  if ($query_string ~ "[a-zA-Z0-9_]=(\.\.//?)+") {set $file_injection 1;}
+  if ($query_string ~ "[a-zA-Z0-9_]=/([a-z0-9_.]//?)+") {set $file_injection 1;}
+  if ($file_injection = 1) {return 403;}
 
   location ~ /.well-known {
     auth_basic off;
@@ -29,7 +48,90 @@ server {
   {{settings}}
 
   include /etc/nginx/global_settings;
-  include /etc/nginx/joomla_blocks;
+
+  ######################################################################
+  ## Block access to common Joomla sensitive files in NginX
+  ######################################################################
+  location = /configuration.php {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /configuration.php-dist {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /CONTRIBUTING.md {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /htaccess.txt {
+      log_not_found off;
+      deny all;
+      return 404;
+  }
+  location = /joomla.xml {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /LICENSE.txt {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location /phpunit.xml {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /README.txt {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /web.config {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /language/en-GB/install.xml {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /language/en-GB/langmetadata.xml {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /language/nl-NL/install.xml {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+  location = /language/nl-NL/langmetadata.xml {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+
+  ######################################################################
+  ## Block access to common Joomla sensitive folders
+  ######################################################################
+  location ^~ /logs/ {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
+
+  location ^~ /administrator/logs/ {
+    log_not_found off;
+    deny all;
+    return 404;
+  }
 
   try_files $uri $uri/ /index.php?$args;
   index index.php index.html;
