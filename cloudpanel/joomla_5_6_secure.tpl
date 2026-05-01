@@ -19,6 +19,18 @@ server {
     rewrite ^ https://$host$request_uri permanent;
   }
 
+  # -- Maximum client body size set to 1 Gigabyte
+  client_max_body_size 1G;
+
+  ######################################################################
+  ## Protect against common file injection attacks
+  ######################################################################
+  set $file_injection 0;
+  if ($query_string ~ "[a-zA-Z0-9_]=http://") {set $file_injection 1;}
+  if ($query_string ~ "[a-zA-Z0-9_]=(\.\.//?)+") {set $file_injection 1;}
+  if ($query_string ~ "[a-zA-Z0-9_]=/([a-z0-9_.]//?)+") {set $file_injection 1;}
+  if ($file_injection = 1) {return 403;}
+
   ######################################################################
   ## Protect against common exploits in query strings in NginX
   ######################################################################
@@ -32,13 +44,9 @@ server {
   if ($common_exploit = 1) {return 403;}
 
   ######################################################################
-  ## Protect against common file injection attacks
+  ## Disable PHP Easter Eggs
   ######################################################################
-  set $file_injection 0;
-  if ($query_string ~ "[a-zA-Z0-9_]=http://") {set $file_injection 1;}
-  if ($query_string ~ "[a-zA-Z0-9_]=(\.\.//?)+") {set $file_injection 1;}
-  if ($query_string ~ "[a-zA-Z0-9_]=/([a-z0-9_.]//?)+") {set $file_injection 1;}
-  if ($file_injection = 1) {return 403;}
+  if ($query_string ~ "\=PHP[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}") {return 403;}
 
   location ~ /.well-known {
     auth_basic off;
@@ -52,67 +60,15 @@ server {
   ######################################################################
   ## Block access to common Joomla sensitive files in NginX
   ######################################################################
-  location = /configuration.php {
+  # Block sensitive root-level files
+  location ~* ^/(configuration\.php(-dist)?|CONTRIBUTING\.md|htaccess\.txt|joomla\.xml|LICENSE\.txt|phpunit\.xml|README\.txt|robots\.txt\.dist|web\.config)$ {
     log_not_found off;
     deny all;
     return 404;
   }
-  location = /configuration.php-dist {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /CONTRIBUTING.md {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /htaccess.txt {
-      log_not_found off;
-      deny all;
-      return 404;
-  }
-  location = /joomla.xml {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /LICENSE.txt {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location /phpunit.xml {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /README.txt {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /web.config {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /language/en-GB/install.xml {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /language/en-GB/langmetadata.xml {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /language/nl-NL/install.xml {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
-  location = /language/nl-NL/langmetadata.xml {
+
+  # Block access to language metadata files
+  location ~* ^/language/[a-z][a-z]-[A-Z][A-Z]/(install|langmetadata)\.xml$ {
     log_not_found off;
     deny all;
     return 404;
@@ -121,17 +77,31 @@ server {
   ######################################################################
   ## Block access to common Joomla sensitive folders
   ######################################################################
-  location ^~ /logs/ {
+  location ~* ^/(administrator/)?logs/ {
     log_not_found off;
     deny all;
     return 404;
   }
 
-  location ^~ /administrator/logs/ {
-    log_not_found off;
-    deny all;
-    return 404;
-  }
+  ######################################################################
+  ## Password protect access to /administrator
+  ## Uncomment the lines below if you want to prevent access
+  ######################################################################
+  # location /administrator {
+  #   satisfy any;
+  #
+  #.  # Add ip addresses here you want to whitelist
+  #   # First IP
+  #   allow 1.2.3.4
+  #   # Second ip
+  #   allow 5.6.6.7.8
+  #   deny all;
+  #
+  #   auth_basic "Restricted Area";
+  #   # Add path here to .htpasswd file
+  #   # See https://www.cyberciti.biz/faq/create-update-user-authentication-files/
+  #   auth_basic_user_file /path/to/your/.htpasswd;
+  # }
 
   try_files $uri $uri/ /index.php?$args;
   index index.php index.html;
