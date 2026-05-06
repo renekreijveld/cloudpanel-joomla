@@ -135,7 +135,7 @@ server {
   # location /administrator {
   #   satisfy any;
   #
-  #.  # Add ip addresses here you want to whitelist
+  #   # Add ip addresses here you want to whitelist
   #   # First IP
   #   allow 1.2.3.4
   #   # Second ip
